@@ -1,6 +1,6 @@
 # Looker Explore Assistant (BQ)
 
-This is an extension or plugin for Looker that integrates LLM's hosted on BigQuery (ML.GENERATE_TEXT FUNCTION) into a natural language experience powered by Looker's modeling layer.
+This Looker extension or plugin seamlessly integrates LLMs hosted on BigQuery, utilizing the ML.GENERATE_TEXT FUNCTION, to create an intuitive and user-friendly natural language experience. This integration leverages Looker's modeling layer for effortless use.
 
 ![explore assistant](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTU2b2l1ajc5ZGk2Mnc3OGtqaXRyYW9jejUwa2NzdGhoMmV1cXI0NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/TQvvei5kuc8uQgMqSw/giphy.gif)
 
