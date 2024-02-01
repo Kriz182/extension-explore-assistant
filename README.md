@@ -77,10 +77,10 @@ This section describes how to set up the Gen AI endpoint for the Explore Assista
 1. Ensure all the appropriate environment variables are set (modify .env_example to .env).
 
    ```
-  LOOKER_MODEL=''
-  LOOKER_EXPLORE=''
-  BQ_GENAI_MODEL=''
-  BQ_GENAI_EXPLORE=''
+   LOOKER_MODEL=''
+   LOOKER_EXPLORE=''
+   BQ_GENAI_MODEL=''
+   BQ_GENAI_EXPLORE=''
    ```
 Looker Model / Explore you want to use. 
 BQ GenAI Model and Explore are the model and the explore you installed in step 1. 
