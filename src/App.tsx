@@ -14,9 +14,8 @@ import { ExploreEmbed } from './ExploreEmbed'
 import styles from './styles.module.css'
 import { initDB, addData, getStoreData } from './db'
 
-const VERTEX_AI_ENDPOINT = process.env.VERTEX_AI_ENDPOINT || ''
-const LOOKER_MODEL = process.env.LOOKER_MODEL || ''
-const LOOKER_EXPLORE = process.env.LOOKER_EXPLORE || ''
+const BQ_GENAI_MODEL = process.env.BQ_GENAI_MODEL || ''
+const BQ_GENAI_EXPLORE = process.env.BQ_GENAI_EXPLORE || ''
 
 const AppInternal = () => {
   const { core40SDK } = useContext(ExtensionContext)
@@ -29,47 +28,11 @@ const AppInternal = () => {
   const [data, setData] = React.useState<any>([])
   const [exploreData, setExploreData] = React.useState<any>(null)
 
-  /**
-   * Initializes the application by performing the following steps:
-   * 1. Initializes the database.
-   * 2. Retrieves data from the 'chat' store.
-   * 3. Retrieves the fields of the specified LookML model explore.
-   * 4. Extracts dimensions and measures from the fields.
-   * 5. Sets the explore data with the extracted dimensions and measures.
-   */
   const initialize = async () => {
     const status = await initDB()
     setDb(status)
     const responses = await getStoreData('chat')
     setData(responses)
-    const { fields } = await core40SDK.ok(
-      core40SDK.lookml_model_explore(LOOKER_MODEL, LOOKER_EXPLORE, 'fields')
-    )
-    const dimensions = fields.dimensions.map((field: any) => {
-      const { name, type, description } = field
-      return (
-        'name: ' +
-        name +
-        ', type: ' +
-        type +
-        ', description: ' +
-        description +
-        '\n'
-      )
-    })
-    const measures = fields.measures.map((field: any) => {
-      const { name, type, description } = field
-      return (
-        'name: ' +
-        name +
-        ', type: ' +
-        type +
-        ', description: ' +
-        description +
-        '\n'
-      )
-    })
-    setExploreData({ dimensions: dimensions, measures: measures })
   }
 
   useEffect(() => {
@@ -83,40 +46,31 @@ const AppInternal = () => {
     setQuery(e.currentTarget.value)
   }
 
-  /**
-   * Fetches data from the VERTEX_AI_ENDPOINT based on the provided prompt and fields.
-   * If prompt is undefined, it uses the query as the prompt.
-   * @param prompt - The prompt to be used for the question.
-   * @param fields - The fields object containing dimensions and measures.
-   * @returns {Promise<void>} - A promise that resolves when the data is fetched.
-   */
-  async function fetchData(prompt: string | undefined, fields?: any): Promise<void> {
-    const question = prompt !== undefined ? prompt : query
-    console.log('Question: ', prompt, query)
-    const responseData = await fetch(VERTEX_AI_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        explore: `Dimensions Used to group by information:\n 
-        ${fields.dimensions.join(';')},\n 
-        Measures are used to perform calculations (if top, bottom, total, sum, etc. are used include a measure):\n 
-        ${fields.measures.join(';')}`,
-        question: question,
-      }),
-    })
-
-    const exploreData = await responseData.text()
-    console.log(exploreData)
-    setExploreUrl(exploreData.trim() + '&toggle=dat,pik,vis')
+  async function fetchData(prompt: string | undefined) {
+  const question = prompt !== undefined ? prompt : query;
+    console.log('Question: ', prompt, query);
+    
+      // Replace the fetch call with Looker SDK call
+    const response = await core40SDK.ok(core40SDK.run_inline_query({
+      result_format: 'json',
+      body: {
+        model: BQ_GENAI_MODEL,
+        view: BQ_GENAI_EXPLORE,
+        fields: [`${BQ_GENAI_EXPLORE}.generated_content`],
+        filters: {[`${BQ_GENAI_EXPLORE}.prompt`]: question}
+      }
+    }));
+    
+      // Assuming response is in the format you specified
+      // Extract the desired data
+      const generateQueryContent = response[0][`${BQ_GENAI_EXPLORE}.generated_content`];
+    
+      // Log and set the extracted data
+    console.log(generateQueryContent);
+    setExploreUrl(generateQueryContent.trim() + '&toggle=dat,pik,vis');
   }
+  
 
-  /**
-   * Handles the form submission.
-   * 
-   * @param prompt - The optional prompt string.
-   */
   const handleSubmit = async (prompt: string | undefined) => {
     const status = await initDB()
     setDb(status)
@@ -127,11 +81,6 @@ const AppInternal = () => {
     fetchData(prompt, exploreData)
   }
 
-  /**
-   * Handles the submission of an example prompt.
-   * @param {string} prompt - The prompt to submit.
-   * @returns {Promise<void>} - A promise that resolves when the submission is complete.
-   */
   const handleExampleSubmit = async (prompt: string) => {
     setQuery(prompt)
     handleSubmit(prompt)
