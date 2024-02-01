@@ -80,6 +80,6 @@ module.exports = {
     new BundleAnalyzerPlugin({
       analyzerMode: process.env.ANALYZE_MODE || 'disabled',
     }),
-    new webpack.EnvironmentPlugin(['VERTEX_AI_ENDPOINT','LOOKER_MODEL','LOOKER_EXPLORE']),
+    new webpack.EnvironmentPlugin(['BQ_GENAI_MODEL','LOOKER_MODEL','BQ_GENAI_EXPLORE','LOOKER_EXPLORE']),
   ],
 }
