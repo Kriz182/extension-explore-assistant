@@ -1,6 +1,6 @@
-# Looker Explore Assistant
+# Looker Explore Assistant (BQ)
 
-This is an extension or plugin for Looker that integrates LLM's hosted on Vertex AI into a natural language experience powered by Looker's modeling layer.
+This is an extension or plugin for Looker that integrates LLM's hosted on BigQuery (ML.GENERATE_TEXT FUNCTION) into a natural language experience powered by Looker's modeling layer.
 
 ![explore assistant](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTU2b2l1ajc5ZGk2Mnc3OGtqaXRyYW9jejUwa2NzdGhoMmV1cXI0NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/TQvvei5kuc8uQgMqSw/giphy.gif)
 
@@ -30,56 +30,30 @@ Upcoming capabilities on the roadmap:
 - [Looker Extension SDK](https://github.com/looker-open-source/sdk-codegen/tree/main/packages/extension-sdk-react)
 - [Looker Embed SDK](https://cloud.google.com/looker/docs/embed-sdk)
 - [Looker Components](https://cloud.google.com/looker/docs/components)
+- [Looker Model Using BQ ML GENERATE TEXT](https://github.com/Kriz182/explore-assistant-model)
 
 #### Backend API
 - [Google Cloud Platform](https://cloud.google.com/)
 - [Vertex AI](https://cloud.google.com/vertex-ai)
-- [Cloud Functions](https://cloud.google.com/functions)
+- [ML.GENERATE_TEXT Function](https://cloud.google.com/bigquery/docs/generate-text)
 - ---
 
 ## Setup
-### 1. Generative AI Endpoint
+### 1. ML GENERATE TEXT BigQuery
 
-This section describes how to set up the Gen AI endpoint for the Explore Assistant. TLDR; We use a 2nd Gen Cloud Function to call the foundational model and return the results to the frontend.
+This section describes how to set up the Gen AI endpoint for the Explore Assistant. TLDR; We use BigQuery ML GENERATE TEXT function that laverages text-bison to generate Looker's Query URL.
 
 #### Getting Started for Development
 
-![simple-architecture](./static/simple-architecture.png)
 
 1. Clone or download a copy of this repository to your development machine.
 
    ```bash
    # cd ~/ Optional. your user directory is usually a good place to git clone to.
-   git clone git@github.com:LukaFontanilla/looker-explore-assistant.git
+   git clone https://github.com/Kriz182/extension-explore-assistant
    ```
 
-2. Navigate (`cd`) to the template directory on your system
-
-   ```bash
-   cd looker-explore-assistant/cloud-function/terraform
-   ```
-
-3. Replace defaults in the `variables.tf` file for project and region.
-
-4. Deploy resources.
-
-   ```terraform
-   terraform init
-
-   terraform plan
-
-   terraform apply
-   ```
-
-5. Save Deployed Cloud Function URL Endpoints
-
-#### Optionally, deploy regional endpoints and load balance traffic from Looker
-
-![global-architecture](./static/global-architecture.png)
-
-Please see this resource for more information on how to deploy regional endpoints and load balance traffic from Looker: https://cloud.google.com/load-balancing/docs/https/setting-up-https-serverless
-
-
+2. Head to this repo and copy it to your Looker's project in your instance : [explore-assistant-model](https://github.com/Kriz182/explore-assistant-model) 
 
 ### 2. Looker Extension Framework Setup
 
@@ -89,7 +63,7 @@ Please see this resource for more information on how to deploy regional endpoint
 1. Navigate (`cd`) to the template directory on your system
 
    ```bash
-   cd looker-explore-assistant
+   cd extension-explore-assistant
    ```
 
 1. Install the dependencies with [NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).
@@ -100,13 +74,16 @@ Please see this resource for more information on how to deploy regional endpoint
 
    > You may need to update your Node version or use a [Node version manager](https://github.com/nvm-sh/nvm) to change your Node version.
 
-1. Ensure all the appropriate environment variables are set.
+1. Ensure all the appropriate environment variables are set (modify .env_example to .env).
 
    ```
-   VERTEX_AI_ENDPOINT=
-   LOOKER_MODEL=
-   LOOKER_EXPLORE=
+  LOOKER_MODEL=''
+  LOOKER_EXPLORE=''
+  BQ_GENAI_MODEL=''
+  BQ_GENAI_EXPLORE=''
    ```
+Looker Model / Explore you want to use. 
+BQ GenAI Model and Explore are the model and the explore you installed in step 1. 
 
 1. Start the development server
 
@@ -128,18 +105,17 @@ Please see this resource for more information on how to deploy regional endpoint
 
    ```lookml
    application: explore_assistant {
-    label: "Explore Assistant"
+    label: "Explore Assistant (BQ)"
     url: "https://localhost:8080/bundle.js"
     # file: "bundle.js"
     entitlements: {
-      core_api_methods: ["lookml_model_explore"]
+      core_api_methods: ["lookml_model_explore", "run_inline_query"]
       navigation: yes
       use_embeds: yes
       use_iframes: yes
       new_window: yes
       new_window_external_urls: ["https://developers.generativeai.google/*"]
       local_storage: yes
-      external_api_urls: ["cloud function url"]
     }
    }
    ```
@@ -174,8 +150,8 @@ Note that the additional JavaScript files generated during the production build 
 
 ### Recommendations for fine tuning the model
 
-This app uses a one shot prompt technique for fine tuning a model, meaning that all the metadata for the model is contained in the prompt. This is a good technique for a small dataset, but for a larger dataset, you may want to use a more traditional fine tuning approach. In this repo we check the prompt token limit and if it is greater than 3000, we use the `text-bison32k` model otherwise `text-bison` is used. You can change this limit in the `cloud-function/src/main.py` file. This is a simple implementation, but you can also use a more sophisticated approach that involves generating embeddings for explore metadata and leveraging a vector database for indexing.
+This app uses a one shot prompt technique for fine tuning a model, meaning that all the metadata for the model is contained in the prompt. This is a good technique for a small dataset, but for a larger dataset, you may want to use a more traditional fine tuning approach. You can change the target model in the [explore-assistant-model](https://github.com/Kriz182/explore-assistant-model) configuration. This is a simple implementation, but you can also use a more sophisticated approach that involves generating embeddings for explore metadata and leveraging a vector database for indexing.
 
-To best optimize the one shot prompt accuracy, please update the example input output string in the Cloud Function code to be a representative sample of the data you are trying to model. For example, if you are trying to model a dataset of sales data, you may want to use a prompt like "What is the total sales for each region?" and follow that with the output using Looker's expanded url syntax. 20-100 examples is a good starting point for a one shot prompt and can drastically improve the accuracy of the model.
+To best optimize the one shot prompt accuracy, please update the example input output string in the [explore-assistant-model](https://github.com/Kriz182/explore-assistant-model)  code to be a representative sample of the data you are trying to model. For example, if you are trying to model a dataset of sales data, you may want to use a prompt like "What is the total sales for each region?" and follow that with the output using Looker's expanded url syntax. 20-100 examples is a good starting point for a one shot prompt and can drastically improve the accuracy of the model.
 
 We recommend using Looker System Activity, filtering queries for the model and explore you plan on using the assistant with, and then using the top 20-100 queries as your example input output string with their expanded url syntax.
