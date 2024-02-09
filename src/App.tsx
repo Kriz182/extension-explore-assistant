@@ -1,3 +1,29 @@
+/*
+
+MIT License
+
+Copyright (c) 2023 Looker Data Sciences, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
 import React, { useContext, useEffect } from 'react'
 import { hot } from 'react-hot-loader/root'
 import {
@@ -12,27 +38,64 @@ import { ExtensionContext } from '@looker/extension-sdk-react'
 import type { ChangeEvent } from 'react'
 import { ExploreEmbed } from './ExploreEmbed'
 import styles from './styles.module.css'
-import { initDB, addData, getStoreData } from './db'
+// import { initDB, addData, getStoreData, updateData, getData } from './db'
 
 const BQ_GENAI_MODEL = process.env.BQ_GENAI_MODEL || ''
 const BQ_GENAI_EXPLORE = process.env.BQ_GENAI_EXPLORE || ''
 
-const AppInternal = () => {
-  const { core40SDK } = useContext(ExtensionContext)
+const ExploreAssistant = () => {
+  const { core40SDK, extensionSDK } = useContext(ExtensionContext)
   const [exploreUrl, setExploreUrl] = React.useState<any>('')
   const [query, setQuery] = React.useState<string>('')
   const [explore, setExplore] = React.useState<any>(null)
   const [begin, setBegin] = React.useState<boolean>(false)
   const [submit, setSubmit] = React.useState<boolean>(false)
   const [db, setDb] = React.useState<boolean>(false)
-  const [data, setData] = React.useState<any>([])
+  const [data, setData] = React.useState<any>({})
   const [exploreData, setExploreData] = React.useState<any>(null)
 
+  /**
+   * Initializes the application by performing the following steps:
+   * 1. Initializes the database.
+   * 2. Retrieves data from the 'chat history' store.
+   * 3. Retrieves the fields of the specified LookML model explore.
+   * 4. Extracts dimensions and measures from the fields.
+   * 5. Sets the explore data with the extracted dimensions and measures.
+   */
   const initialize = async () => {
-    const status = await initDB()
-    setDb(status)
-    const responses = await getStoreData('chat')
-    setData(responses)
+    // const status = await initDB()
+    // setDb(status)
+    // const responses = await getStoreData('chat')
+    const responses = await extensionSDK.localStorageGetItem('chat_history')
+    setData(responses === null ? {} : JSON.parse(responses))
+    // const { fields } = await core40SDK.ok(
+    //   core40SDK.lookml_model_explore(LOOKER_MODEL, LOOKER_EXPLORE, 'fields')
+    // )
+    // const dimensions = fields.dimensions.map((field: any) => {
+    //   const { name, type, description } = field
+    //   return (
+    //     'name: ' +
+    //     name +
+    //     ', type: ' +
+    //     type +
+    //     ', description: ' +
+    //     description +
+    //     '\n'
+    //   )
+    // })
+    // const measures = fields.measures.map((field: any) => {
+    //   const { name, type, description } = field
+    //   return (
+    //     'name: ' +
+    //     name +
+    //     ', type: ' +
+    //     type +
+    //     ', description: ' +
+    //     description +
+    //     '\n'
+    //   )
+    // })
+    // setExploreData({ dimensions: dimensions, measures: measures })
   }
 
   useEffect(() => {
@@ -46,12 +109,30 @@ const AppInternal = () => {
     setQuery(e.currentTarget.value)
   }
 
-  async function fetchData(prompt: string | undefined) {
-  const question = prompt !== undefined ? prompt : query;
-    console.log('Question: ', prompt, query);
-    
-      // Replace the fetch call with Looker SDK call
-    const response = await core40SDK.ok(core40SDK.run_inline_query({
+  /**
+   * Fetches data from the VERTEX_AI_ENDPOINT based on the provided prompt and fields.
+   * If prompt is undefined, it uses the query as the prompt.
+   * @param prompt - The prompt to be used for the question.
+   * @param fields - The fields object containing dimensions and measures.
+   * @returns {Promise<void>} - A promise that resolves when the data is fetched.
+   */
+  async function fetchData(prompt: string | undefined): Promise<void> {
+    const question = prompt !== undefined ? prompt : query
+    console.log('Question: ', prompt, query)
+    // const responseData = await fetch(VERTEX_AI_ENDPOINT, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({
+    //     explore: `Dimensions Used to group by information:\n 
+    //     ${fields.dimensions.join(';')},\n 
+    //     Measures are used to perform calculations (if top, bottom, total, sum, etc. are used include a measure):\n 
+    //     ${fields.measures.join(';')}`,
+    //     question: question,
+    //   }),
+    // })
+    const responseData = await core40SDK.ok(core40SDK.run_inline_query({
       result_format: 'json',
       body: {
         model: BQ_GENAI_MODEL,
@@ -59,28 +140,39 @@ const AppInternal = () => {
         fields: [`${BQ_GENAI_EXPLORE}.generated_content`],
         filters: {[`${BQ_GENAI_EXPLORE}.prompt`]: question}
       }
-    }));
-    
-      // Assuming response is in the format you specified
-      // Extract the desired data
-      const generateQueryContent = response[0][`${BQ_GENAI_EXPLORE}.generated_content`];
-    
-      // Log and set the extracted data
-    console.log(generateQueryContent);
-    setExploreUrl(generateQueryContent.trim() + '&toggle=dat,pik,vis');
-  }
-  
+    }))
 
+    const exploreData = await responseData[0][`${BQ_GENAI_EXPLORE}.generated_content`]
+    console.log(exploreData)
+    setExploreUrl(exploreData.trim() + '&toggle=dat,pik,vis')
+    // await updateData('chat',question, { message: question, url: exploreData.trim() + '&toggle=dat,pik,vis'})
+    data[question] = { message: question, url: exploreData.trim() + '&toggle=dat,pik,vis'}
+    await extensionSDK.localStorageSetItem('chat_history',JSON.stringify(data))
+  }
+
+  /**
+   * Handles the form submission.
+   * 
+   * @param prompt - The optional prompt string.
+   */
   const handleSubmit = async (prompt: string | undefined) => {
-    const status = await initDB()
-    setDb(status)
-    const res = await addData('chat', { message: query })
-    console.log(res)
-    setData([...data, { message: prompt !== undefined ? prompt : query }])
+    // const status = await initDB()
+    // setDb(status)
+    // await addData('chat', { message: query })
+    // setData([...data, { message: prompt !== undefined ? prompt : query }])
+    console.log(data)
+    data[prompt !== undefined ? prompt : query] = { message: prompt !== undefined ? prompt : query}
+    await extensionSDK.localStorageSetItem('chat_history',JSON.stringify(data))
+    setData(data)
     setSubmit(true)
-    fetchData(prompt, exploreData)
+    fetchData(prompt)
   }
 
+  /**
+   * Handles the submission of an example prompt.
+   * @param {string} prompt - The prompt to submit.
+   * @returns {Promise<void>} - A promise that resolves when the submission is complete.
+   */
   const handleExampleSubmit = async (prompt: string) => {
     setQuery(prompt)
     handleSubmit(prompt)
@@ -88,6 +180,18 @@ const AppInternal = () => {
     if (elem) {
       elem.scrollTop = elem.scrollHeight
     }
+  }
+
+  /**
+   * Handles the submission of a historical prompt. Doesn't issue a new network request
+   * @param {string} prompt - The prompt to submit.
+   * @returns {Promise<void>} - A promise that resolves when the submission is complete.
+   */
+  const handleHistorySubmit = async (prompt: string) => {
+    const res = await extensionSDK.localStorageGetItem('chat_history') //getData('chat',prompt)
+    setSubmit(true)
+    setQuery(prompt)
+    setExploreUrl(JSON.parse(res)[prompt].url)
   }
 
   const categorizedPrompts = [
@@ -117,24 +221,11 @@ const AppInternal = () => {
         <SpaceVertical>
           <div
             className={styles.scrollbar}
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%',
-              height: '100%',
-            }}
+            id={styles.layout}
           >
             <div
               className={styles.scrollbar}
-              style={{
-                width: '30vw',
-                padding: '2rem',
-                height: '100vh',
-                borderRight: '1px solid #ccc',
-                overflowY: 'scroll',
-              }}
+              id={styles.subLayout}
             >
               <span
                 style={{
@@ -183,7 +274,7 @@ const AppInternal = () => {
                     alignItems: 'center',
                   }}
                 >
-                  <div style={{ width: '50%' }}>
+                  <div style={{ width: 'auto' }}>
                     <Button
                       disabled={submit}
                       onClick={() => handleSubmit(undefined)}
@@ -197,7 +288,7 @@ const AppInternal = () => {
                   <Tab2 id="examples" label="Example Prompts">
                     <div
                       className={styles.scrollbar}
-                      style={{ overflowY: 'scroll', height: '40vh' }}
+                      style={{ overflowY: 'scroll', height: '40vh', display:'flex',flexDirection:'column',justifyContent:'flex-start',alignItems:'center' }}
                     >
                       {categorizedPrompts.map((item, index: number) => (
                         <div
@@ -226,23 +317,22 @@ const AppInternal = () => {
                     <div
                       className={styles.scrollbar}
                       id="historyScroll"
-                      style={{ overflowY: 'scroll', height: '40vh' }}
+                      style={{ overflowY: 'scroll', height: '40vh', display:'flex',flexDirection:'column',justifyContent:'flex-start', alignItems:'center' }}
                     >
-                      {db &&
-                        data.length > 0 &&
-                        data
-                          .filter((item: any) => item.message !== '')
+                      {
+                      // db &&
+                        Object.keys(data).length > 0 &&
+                        Object.keys(data)
+                          .filter((item: any) => data[item].message !== '')
                           .map((item: any, index: number) => {
                             return (
                               <div
                                 key={index}
-                                onClick={() =>
-                                  handleExampleSubmit(item.message)
-                                }
+                                onClick={() => handleHistorySubmit(data[item].message)}
                                 className={styles.card}
                               >
                                 <span style={{ fontSize: '1.5vh' }}>
-                                  {item.message}
+                                  {data[item].message}
                                 </span>
                               </div>
                             )
@@ -264,6 +354,7 @@ const AppInternal = () => {
               {exploreUrl && (
                 <div
                   style={{
+                    position:'relative',
                     backgroundColor: '#f7f7f7',
                     height: '100vh',
                     width: '100%',
@@ -273,6 +364,7 @@ const AppInternal = () => {
                     <ExploreEmbed
                       exploreUrl={exploreUrl}
                       setExplore={setExplore}
+                      submit={submit}
                       setSubmit={setSubmit}
                     />
                   )}
@@ -527,4 +619,5 @@ const BardLogo = ({ search }: BardLogoProps) => {
   )
 }
 
-export const App = hot(AppInternal)
+export const App = hot(ExploreAssistant)
+export { BardLogo }
