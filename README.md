@@ -43,7 +43,10 @@ Upcoming capabilities on the roadmap:
 ## Setup
 ### 1. ML GENERATE TEXT BigQuery
 
-This section describes how to set up the Gen AI endpoint for the Explore Assistant. TLDR; We use BigQuery ML GENERATE TEXT function that laverages text-bison to generate Looker's Query URL.
+This section describes how to set up the Gen AI endpoint for the Explore Assistant. 
+TLDR; We use BigQuery ML GENERATE TEXT function that laverages text-bison to generate Looker's Query URL.
+
+Refer this this example on how to set it up in Looker : **[Looker Model Using BQ ML GENERATE TEXT](https://github.com/Kriz182/explore-assistant-model)**
 
 #### Getting Started for Development
 
