@@ -2,6 +2,8 @@
 
 This Looker extension or plugin seamlessly integrates LLMs hosted on BigQuery, utilizing the ML.GENERATE_TEXT FUNCTION, to create an intuitive and user-friendly natural language experience. This integration leverages Looker's modeling layer for effortless use.
 
+Please refer to the original [Explore Assistant Extension](https://github.com/LukaFontanilla/looker-explore-assistant) for updates. 
+
 ![explore assistant](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTU2b2l1ajc5ZGk2Mnc3OGtqaXRyYW9jejUwa2NzdGhoMmV1cXI0NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/TQvvei5kuc8uQgMqSw/giphy.gif)
 
 ## Description
