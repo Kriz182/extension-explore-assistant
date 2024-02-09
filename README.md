@@ -145,9 +145,12 @@ BQ GenAI Model and Explore are the model and the explore you installed in step 1
 
 The process above requires your local development server to be running to load the extension code. To allow other people to use the extension, a production build of the extension needs to be run. As the kitchensink uses code splitting to reduce the size of the initially loaded bundle, multiple JavaScript files are generated.
 
-1. In your extension project directory on your development machine, build the extension by running the command `npm build`.
-2. Drag and drop ALL of the generated JavaScript files contained in the `dist` directory into the Looker project interface.
-3. Modify your `manifest.lkml` to use `file` instead of `url` and point it at the `bundle.js` file.
+1. In your extension project directory on your development machine, build the extension by running the following command :
+   ```bash
+   npm run build
+   ```
+3. Drag and drop ALL of the generated JavaScript files contained in the `dist` directory into the Looker project interface.
+4. Modify your `manifest.lkml` to use `file` instead of `url` and point it at the `bundle.js` file.
 
 Note that the additional JavaScript files generated during the production build process do not have to be mentioned in the manifest. These files will be loaded dynamically by the extension as and when they are needed. Note that to utilize code splitting, the Looker server must be at version 7.21 or above.
 
